@@ -18,15 +18,15 @@ from linebot.models import (
     MessageTemplateAction,FlexSendMessage
 )
 import os
+from database import DataBase
 from bot import Bot
+
 app = Flask(__name__)
 
-
 environment = os.getenv("ENVIRONMENT")
+gm = os.getenv("U8d0f4dfe21ccb2f1dccd5c80d5bb20fe")
 print("environment: "+environment)
 
-local_storage={}
-limite_user={}
 if environment =="DEV":
     print("本地開發 使用本地開發版本機器人")
     line_bot_api = LineBotApi(os.getenv("LINE_BOT_API_DEV"))
@@ -35,7 +35,9 @@ else:
     print("線上heroku環境 預設線上版機器人")
     line_bot_api = LineBotApi(os.getenv("LINE_BOT_API"))
     handler = WebhookHandler(os.getenv("LINE_BOT_SECRET"))
-bot =  Bot(line_bot_api)
+database = DataBase()
+#創建class
+bot =  Bot(line_bot_api,database)
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -69,7 +71,42 @@ def handle_postback(event):
 def handle_message(event):
     print("收到訊息")
     print(event)
-    bot.getUserMessage(event)
+    #基礎判斷 過濾一些沒加好友的 回傳加好友訊息
+    checkUserResult = checkUserData(event)
+    if checkUserResult is True:
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="第一次傳送訊息,已成功創建資料 請再次傳送指令")
+        )
+        return
+    elif checkUserResult is False:
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="看來你沒有加我好友! 請先加我好友喔")
+        )
+        return
+    #驚嘆號開頭 進入bot基本功能邏輯
+    if event.message.text.startswith("!"):
+        bot.getUserMessage(event)
+    else:
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="無指令"))
+
+def checkUserData(event):
+    user_id = event.source.user_id
+    try:
+        profile = line_bot_api.get_profile(user_id)
+    except:
+        return False
+    if database.checkUser(user_id) is True:
+        print("玩家有資料 checkuser通過")
+    else:
+        user_line_name = profile.display_name
+        database.createUser(user_id,user_line_name)
+        return True
+        
+
 
 
 
