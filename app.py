@@ -18,7 +18,7 @@ from linebot.models import (
     MessageTemplateAction,FlexSendMessage
 )
 import os
-
+from bot import Bot
 app = Flask(__name__)
 
 
@@ -35,7 +35,7 @@ else:
     print("線上heroku環境 預設線上版機器人")
     line_bot_api = LineBotApi(os.getenv("LINE_BOT_API"))
     handler = WebhookHandler(os.getenv("LINE_BOT_SECRET"))
-
+bot =  Bot(line_bot_api)
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -67,10 +67,10 @@ def handle_postback(event):
 #用戶文字訊息
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    print("收到訊息")
     print(event)
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text="測試測試"))
+    bot.getUserMessage(event)
+
 
 
 if __name__ == "__main__":
