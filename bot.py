@@ -7,13 +7,14 @@ from linebot.exceptions import (
 from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,TemplateSendMessage,PostbackEvent,ImageSendMessage,
     ButtonsTemplate,
-    MessageTemplateAction,FlexSendMessage
+    MessageTemplateAction,FlexSendMessage,QuickReply,QuickReplyButton,MessageAction
 )
 import os
 import tools
 from database import DataBase
 from datetime import datetime, timedelta
 import math
+import FlexMessageReply
 class Bot():
     def __init__(self,bot:LineBotApi,dataBase:DataBase):
         self.linebotapi = bot
@@ -37,7 +38,19 @@ class Bot():
                     event.reply_token,
                     TextSendMessage(text="序號輸入格式有問題")
                 )
-
+        elif _userText =="!圖文":
+            self.linebotapi.reply_message(
+                    event.reply_token,
+                    FlexSendMessage("圖文選單",contents=FlexMessageReply.SimpleFlexMessage())
+                )
+        elif _userText =="!快速":
+            self.linebotapi.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="快速回覆 需使用手機",quick_reply=QuickReply(items=[
+                        QuickReplyButton(action=MessageAction(label="按我測試",text="按了快速回覆1")),
+                        QuickReplyButton(action=MessageAction(label="按我測試2",text="按了快速回覆2")),
+                    ]))
+                )
 
     def createSerialNumber(self,event):
         print("產生新序號")
@@ -62,9 +75,14 @@ class Bot():
     def listSerialNumbers(self,event):
         print("列出序號&過期時間")
         _all_serial = self.database.getSerialNumberList()
-        _reply = ""
+        _reply = "序號資料:\n"
         for serial in _all_serial:
-            _reply+="序號:"+serial["serail_number"]+"\n"+"過期時間"+serial["expiration_time"]+"\n"
+            _serialinfo ="序號:"+serial["serail_number"]+"\n"+"過期時間"+serial["expiration_time"]+"\n"
+            #過期的序號設置false符號
+            if self.checkSerialNumberIsLegal(serial["serail_number"]) is False:
+                self.database.SetSerialNumberValid(serial["serail_number"],False)
+            else:
+                _reply+=_serialinfo
         self.linebotapi.reply_message(
             event.reply_token,
             TextSendMessage(text=_reply)

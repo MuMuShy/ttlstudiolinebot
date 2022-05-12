@@ -73,6 +73,25 @@ class DataBase():
         except:
             return False
     
+    def SetSerialNumberValid(self,serial_number,is_valid):
+        #設定序號是否過期
+        try:
+            self.cursor = self.conn.cursor()
+        except:
+            print("連線以丟失 重連")
+            self.conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+            self.cursor = self.conn.cursor()
+        #try:
+        if is_valid is True:
+            is_valid = "TRUE"
+        else:
+            is_valid = "FALSE"
+        sql ="UPDATE serial_numbers SET is_valid = '{is_valid}' WHERE serial_number = '{serial_number}'".format(is_valid = is_valid,serial_number = serial_number)
+        self.cursor.execute(sql)
+        self.conn.commit()
+        return True
+        #
+    
     def addSerialNumber(self,serial_number,expiration_time):
         try:
             self.cursor = self.conn.cursor()
@@ -124,3 +143,7 @@ class DataBase():
             _data = {"serail_number":serial[0],"expiration_time":serial[1]}
             json.append(_data)
         return json
+
+if __name__ == "__main__":
+    database = DataBase()
+    database.SetSerialNumberValid("S63rWM20",False)
